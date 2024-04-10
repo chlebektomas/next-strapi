@@ -1,47 +1,26 @@
+import { getHomePageData } from "@/data/loaders";
+
+import { FeatureSection } from "@/components/feature-section";
 import { HeroSection } from "@/components/hero-section";
-import { baseUrl } from "@/lib/constants";
-import { flattenAttributes } from "@/lib/utils";
-import qs from "qs";
 
-const homePageQuery = qs.stringify({
-	populate: {
-		blocks: {
-			populate: {
-				image: {
-					fields: ["url", "alternativeText"],
-				},
-				link: {
-					populate: true,
-				},
-			},
-		},
-	},
-});
-
-async function getStrapiData(path: string) {
-	const url = new URL(path, baseUrl);
-	url.search = homePageQuery;
-
-	try {
-		const response = await fetch(url.href, { cache: "no-store" });
-		const data = await response.json();
-
-		const flattenedData = flattenAttributes(data);
-
-		return flattenedData;
-	} catch (error) {
-		console.error(error);
+// For matching order in strapi
+function blockRenderer(block: any) {
+	switch (block.__component) {
+		case "layout.hero-section":
+			return <HeroSection key={block.id} data={block} />;
+		case "layout.features-section":
+			return <FeatureSection key={block.id} data={block} />;
+		default:
+			return null;
 	}
 }
 
 export default async function Home() {
-	const strapiData = await getStrapiData("/api/home-page");
+	const strapiData = await getHomePageData();
 
 	const { blocks } = strapiData;
 
-	return (
-		<main>
-			<HeroSection data={blocks[0]} />
-		</main>
-	);
+	if (!blocks) return <p>No sections found</p>;
+
+	return <main>{blocks.map(blockRenderer)}</main>;
 }
